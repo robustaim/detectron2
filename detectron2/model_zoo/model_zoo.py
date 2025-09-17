@@ -1,8 +1,16 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import os
+import sys
 from typing import Optional
-import pkg_resources
 import torch
+
+if sys.version_info >= (3, 9):
+    from importlib import resources
+else:
+    try:
+        import importlib_resources as resources
+    except ImportError:
+        import pkg_resources  # fallback for python 3.8 and below
 
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import CfgNode, LazyConfig, get_cfg, instantiate
@@ -136,9 +144,14 @@ def get_config_file(config_path):
     Returns:
         str: the real path to the config file.
     """
-    cfg_file = pkg_resources.resource_filename(
-        "detectron2.model_zoo", os.path.join("configs", config_path)
-    )
+    try:
+        config_files = resources.files("detectron2.model_zoo") / "configs"
+        with resources.as_file(config_files / config_path) as actual_file:
+            cfg_file = str(actual_file)
+    except (AttributeError, TypeError, FileNotFoundError, NameError):
+        cfg_file = pkg_resources.resource_filename(
+            "detectron2.model_zoo", os.path.join("configs", config_path)
+        )
     if not os.path.exists(cfg_file):
         raise RuntimeError("{} not available in Model Zoo!".format(config_path))
     return cfg_file
