@@ -3,12 +3,17 @@ import torch
 
 from detectron2.utils.env import TORCH_VERSION
 
-try:
-    from torch.fx._symbolic_trace import is_fx_tracing as is_fx_tracing_current
+try:  # Use new PyTorch 2.1+ API to avoid deprecation warning
+    from torch.fx._symbolic_trace import is_fx_tracing_symbolic_tracing as is_fx_tracing_current
 
     tracing_current_exists = True
 except ImportError:
-    tracing_current_exists = False
+    try:  # Fallback: Use deprecated API for PyTorch < 2.1
+        from torch.fx._symbolic_trace import is_fx_tracing as is_fx_tracing_current
+
+        tracing_current_exists = True
+    except ImportError:  # Neither API available - will use legacy detection method
+        tracing_current_exists = False
 
 try:
     from torch.fx._symbolic_trace import _orig_module_call
